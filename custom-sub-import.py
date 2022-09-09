@@ -9,6 +9,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Final
 from typing import List
 from typing import Optional
 
@@ -214,6 +215,8 @@ class SonarrDownloadEventHandler(_RarbgSubtitleCopier):
 
 if __name__ == "__main__":
 
+    version: Final[str] = "0.0.1"
+
     main_log = logging.getLogger("custom-sub-import")
 
     log_fmt = logging.Formatter(
@@ -232,6 +235,8 @@ if __name__ == "__main__":
     main_log.addHandler(info_handler)
     main_log.addHandler(debug_handler)
     main_log.setLevel(logging.INFO)
+
+    main_log.info(f"Starting subtitle importer {version}")
 
     radarr_events_to_handlers = {
         "Download": RadarrDownloadEventHandler,
