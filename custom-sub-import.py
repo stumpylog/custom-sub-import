@@ -109,6 +109,10 @@ class SonarrDownloadEventHandler(_EventHandler):
             os.environ["sonarr_episodefile_sourcefolder"],
         )
 
+        media_destination_path = self.episode_file_path
+
+        copier = None
+
         if "rarbg" in self.episode_file_src_folder.name.lower():
 
             # The expected subtitle folder is Subs at the root level, with individual
@@ -119,14 +123,14 @@ class SonarrDownloadEventHandler(_EventHandler):
                 / Path(self.episode_file_src_path.with_suffix("").name)
             )
 
-            media_destination_path = self.episode_file_path
-
             copier = _SubtitleCopier(
                 self.log,
                 expected_subs_folder,
                 media_destination_path,
                 locate_english_subs_by_size,
             )
+
+        if copier is not None:
             copier.copy()
 
 
