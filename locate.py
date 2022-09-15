@@ -7,7 +7,7 @@ from typing import List
 from typing import Optional
 
 
-class _LocatedSubtitles(object):
+class LocatedSubtitles(object):
     def __init__(
         self,
         full_subtitle,
@@ -22,7 +22,7 @@ class _LocatedSubtitles(object):
 def locate_english_subs_by_name(
     log,
     expected_subs_folder: Path,
-) -> _LocatedSubtitles:
+) -> LocatedSubtitles:
     """
     Given a folder, will attempt to locate the properly named English subtitle files within the folder.
     If a subtitle is not found, it will be None.
@@ -52,13 +52,13 @@ def locate_english_subs_by_name(
     else:
         log.info(f"{forced_subtitle} exists")
 
-    return _LocatedSubtitles(full_subtitle, sdh_subtitle, forced_subtitle)
+    return LocatedSubtitles(full_subtitle, sdh_subtitle, forced_subtitle)
 
 
 def locate_english_subs_by_size(
     log,
     expected_subs_folder: Path,
-) -> _LocatedSubtitles:
+) -> LocatedSubtitles:
     """
     Given a folder, this will locate the largest English language subtitle within it.
     If no English subtitles are found, it will return None, otherwise it will return the path.
@@ -129,4 +129,59 @@ def locate_english_subs_by_size(
         full_subtitle = srt_files[1]
         sdh_subtitle = srt_files[2]
 
-    return _LocatedSubtitles(full_subtitle, sdh_subtitle, forced_subtitle)
+    return LocatedSubtitles(full_subtitle, sdh_subtitle, forced_subtitle)
+
+
+def locate_english_subs_vtx(
+    log,
+    expected_subs_folder: Path,
+) -> LocatedSubtitles:
+    full_subtitle = None
+    sdh_subtitle = None
+    forced_subtitle = None
+
+    srt_files: List[Path] = sorted(list(expected_subs_folder.glob("*.srt")))
+    if len(srt_files):
+        log.info("Filtering to English subs")
+        english_files = []
+        for eng_check_srt_file in srt_files:
+            if "english" in eng_check_srt_file.name.lower():
+                english_files.append(eng_check_srt_file)
+
+        srt_files = sorted(
+            english_files,
+            key=lambda x: x.stat().st_size,
+        )
+
+    if len(srt_files) == 0:
+        log.info("No English subs found")
+    elif len(srt_files) == 1:
+        forced_subtitle = srt_files[0]
+    elif len(srt_files) == 2:
+        smaller_srt = srt_files[0]
+        larger_srt = srt_files[1]
+
+        if smaller_srt.stat().st_size < 10240:
+            log.warning(
+                f"Assuming {smaller_srt.name} of size {smaller_srt.stat().st_size} is a forced subtitle",
+            )
+            full_subtitle = smaller_srt
+            sdh_subtitle = larger_srt
+        else:
+            forced_subtitle = smaller_srt
+            sdh_subtitle = larger_srt
+    else:
+        if len(srt_files) > 3:
+            log.warning(
+                f"Found {len(srt_files)} English subs, only considering 3",
+            )
+        srt_files = srt_files[0:3]
+
+        # Smallest file is full
+        # Medium file is forced
+        # Largest file is SDH
+        full_subtitle = srt_files[0]
+        forced_subtitle = srt_files[1]
+        sdh_subtitle = srt_files[2]
+
+    return LocatedSubtitles(full_subtitle, sdh_subtitle, forced_subtitle)

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Final
 
 from locate import locate_english_subs_by_size
+from locate import locate_english_subs_vtx
 
 
 class _EventHandler(abc.ABC):
@@ -71,13 +72,15 @@ class RadarrDownloadEventHandler(_EventHandler):
             os.environ.get("radarr_moviefile_sourcefolder"),
         )
 
-        if "RARBG" in self.download_file_src_folder.name:
+        # This is the destination folder Radarr will copy the movie file to
+        media_destination_path = Path(os.environ.get("radarr_moviefile_path"))
 
-            # The expected subtitle path is a simple Subs folder at the root level
-            expected_subs_folder = self.download_file_src_folder / Path("Subs")
+        # The expected subtitle path is a simple Subs folder at the root level
+        expected_subs_folder = self.download_file_src_folder / Path("Subs")
 
-            # This is the destination folder Radarr will copy the movie file to
-            media_destination_path = Path(os.environ.get("radarr_moviefile_path"))
+        copier = None
+
+        if "rarbg" in self.download_file_src_folder.name.lower():
 
             copier = _SubtitleCopier(
                 self.log,
@@ -85,6 +88,15 @@ class RadarrDownloadEventHandler(_EventHandler):
                 media_destination_path,
                 locate_english_subs_by_size,
             )
+        elif "vxt" in self.download_file_src_folder.name.lower():
+            copier = _SubtitleCopier(
+                self.log,
+                expected_subs_folder,
+                media_destination_path,
+                locate_english_subs_vtx,
+            )
+
+        if copier is not None:
             copier.copy()
 
 
@@ -97,7 +109,7 @@ class SonarrDownloadEventHandler(_EventHandler):
             os.environ["sonarr_episodefile_sourcefolder"],
         )
 
-        if "RARBG" in self.episode_file_src_folder.name:
+        if "rarbg" in self.episode_file_src_folder.name.lower():
 
             # The expected subtitle folder is Subs at the root level, with individual
             # episode's subtitles in folders under that, named by the episode file name
