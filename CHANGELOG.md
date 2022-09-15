@@ -3,6 +3,7 @@
 ## vNext
 
 - Simplified the handling logic
+- Updated pre-commit hooks
 
 ## 0.0.1
 
