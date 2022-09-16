@@ -39,7 +39,7 @@ class _SubtitleCopier(object):
         dest_folder: Path,
         srt_locater,
     ):
-        self.log = log
+        self._log = log
         self.src_folder = src_folder
         self.dest_folder = dest_folder
         self.srt_locater = srt_locater
@@ -83,14 +83,14 @@ class RadarrDownloadEventHandler(_EventHandler):
         if "rarbg" in self.download_file_src_folder.name.lower():
 
             copier = _SubtitleCopier(
-                self.log,
+                self._log,
                 expected_subs_folder,
                 media_destination_path,
                 locate_english_subs_by_size,
             )
         elif "vxt" in self.download_file_src_folder.name.lower():
             copier = _SubtitleCopier(
-                self.log,
+                self._log,
                 expected_subs_folder,
                 media_destination_path,
                 locate_english_subs_vtx,
@@ -124,7 +124,7 @@ class SonarrDownloadEventHandler(_EventHandler):
             )
 
             copier = _SubtitleCopier(
-                self.log,
+                self._log,
                 expected_subs_folder,
                 media_destination_path,
                 locate_english_subs_by_size,
