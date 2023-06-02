@@ -1,0 +1,14 @@
+# https://beta.ruff.rs/docs/settings/
+# https://beta.ruff.rs/docs/rules/
+extend-select = ["I", "W", "UP", "COM", "EXE", "ISC", "ICN", "G201", "INP", "PIE", "RSE", "SIM", "TID", "PLC", "PLE", "PTH", "RUF"]
+ignore = ["SIM105", "SIM112"]
+fix = true
+line-length = 110
+respect-gitignore = true
+src = ["src"]
+target-version = "py38"
+format = "grouped"
+show-fixes = true
+
+[isort]
+force-single-line = true

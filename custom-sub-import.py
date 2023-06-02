@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 
 """
@@ -9,8 +8,10 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Callable
 from typing import Final
 
+from locate import LocatedSubtitles
 from locate import locate_english_subs_by_size
 from locate import locate_english_subs_vtx
 
@@ -31,13 +32,13 @@ class TestEventHandler(_EventHandler):
         self._log.info(f"Handling {event_type}")
 
 
-class _SubtitleCopier(object):
+class _SubtitleCopier:
     def __init__(
         self,
         log: logging.Logger,
         src_folder: Path,
         dest_folder: Path,
-        srt_locater,
+        srt_locater: Callable[[logging.Logger, Path], LocatedSubtitles],
     ):
         self._log = log
         self.src_folder = src_folder
@@ -81,7 +82,6 @@ class RadarrDownloadEventHandler(_EventHandler):
         copier = None
 
         if "rarbg" in self.download_file_src_folder.name.lower():
-
             copier = _SubtitleCopier(
                 self._log,
                 expected_subs_folder,
@@ -103,10 +103,10 @@ class RadarrDownloadEventHandler(_EventHandler):
 class SonarrDownloadEventHandler(_EventHandler):
     def __init__(self, log: logging.Logger):
         super().__init__(log)
-        self.episode_file_path = Path(os.environ["sonarr_episodefile_path"])
-        self.episode_file_src_path = Path(os.environ["sonarr_episodefile_sourcepath"])
+        self.episode_file_path = Path(os.environ["SONARR_EPISODEFILE_PATH"])
+        self.episode_file_src_path = Path(os.environ["SONARR_EPISODEFILE_SOURCEPATH"])
         self.episode_file_src_folder = Path(
-            os.environ["sonarr_episodefile_sourcefolder"],
+            os.environ["SONARR_EPISODEFILE_SOURCEFOLDER"],
         )
 
         media_destination_path = self.episode_file_path
@@ -114,7 +114,6 @@ class SonarrDownloadEventHandler(_EventHandler):
         copier = None
 
         if "rarbg" in self.episode_file_src_folder.name.lower():
-
             # The expected subtitle folder is Subs at the root level, with individual
             # episode's subtitles in folders under that, named by the episode file name
             expected_subs_folder = (
@@ -135,7 +134,6 @@ class SonarrDownloadEventHandler(_EventHandler):
 
 
 if __name__ == "__main__":
-
     version: Final[str] = "0.1.0"
 
     main_log = logging.getLogger("custom-sub-import")
@@ -172,13 +170,12 @@ if __name__ == "__main__":
     handler_mapping = None
 
     if "radarr_eventtype" in os.environ:
-
-        env_event_type = os.environ["radarr_eventtype"]
+        env_event_type = os.environ["RADARR_EVENTTYPE"]
 
         handler_mapping = radarr_events_to_handlers
 
     elif "sonarr_eventtype" in os.environ:
-        env_event_type = os.environ["sonarr_eventtype"]
+        env_event_type = os.environ["SONARR_EVENTTYPE"]
 
         handler_mapping = sonarr_events_to_handlers
 

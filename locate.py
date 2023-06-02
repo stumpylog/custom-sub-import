@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Defines the various ways to locate a set of subtitles
 """
@@ -7,7 +6,7 @@ from typing import List
 from typing import Optional
 
 
-class LocatedSubtitles(object):
+class LocatedSubtitles:
     def __init__(
         self,
         full_subtitle,
