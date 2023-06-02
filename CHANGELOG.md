@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Transition linting to `ruff`
 - `ruff` and `black` added to development dependencies
+- Default to searching for subtitles via size in the expected folder
 
 ## 0.1.0
 

@@ -7,8 +7,8 @@ import logging
 import os
 import shutil
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 from typing import Final
 
 from locate import LocatedSubtitles
@@ -70,34 +70,27 @@ class RadarrDownloadEventHandler(_EventHandler):
     def __init__(self, log: logging.Logger):
         super().__init__(log)
         self.download_file_src_folder: Path = Path(
-            os.environ.get("radarr_moviefile_sourcefolder"),
+            os.environ.get("RADARR_MOVIEFILE_SOURCEFOLDER"),
         )
 
         # This is the destination folder Radarr will copy the movie file to
-        media_destination_path = Path(os.environ.get("radarr_moviefile_path"))
+        media_destination_path = Path(os.environ.get("RADARR_MOVIEFILE_PATH"))
 
         # The expected subtitle path is a simple Subs folder at the root level
         expected_subs_folder = self.download_file_src_folder / Path("Subs")
 
-        copier = None
+        # Assume the copy by size, then specialize if possible
+        copy_function = locate_english_subs_by_size
 
-        if "rarbg" in self.download_file_src_folder.name.lower():
-            copier = _SubtitleCopier(
-                self._log,
-                expected_subs_folder,
-                media_destination_path,
-                locate_english_subs_by_size,
-            )
-        elif "vxt" in self.download_file_src_folder.name.lower():
-            copier = _SubtitleCopier(
-                self._log,
-                expected_subs_folder,
-                media_destination_path,
-                locate_english_subs_vtx,
-            )
+        if "vxt" in self.download_file_src_folder.name.lower():
+            copy_function = locate_english_subs_vtx
 
-        if copier is not None:
-            copier.copy()
+        _SubtitleCopier(
+            self._log,
+            expected_subs_folder,
+            media_destination_path,
+            copy_function,
+        ).copy()
 
 
 class SonarrDownloadEventHandler(_EventHandler):
@@ -111,26 +104,22 @@ class SonarrDownloadEventHandler(_EventHandler):
 
         media_destination_path = self.episode_file_path
 
-        copier = None
+        # The expected subtitle folder is Subs at the root level, with individual
+        # episode's subtitles in folders under that, named by the episode file name
+        expected_subs_folder = (
+            self.episode_file_src_folder
+            / Path("Subs")
+            / Path(self.episode_file_src_path.with_suffix("").name)
+        )
 
-        if "rarbg" in self.episode_file_src_folder.name.lower():
-            # The expected subtitle folder is Subs at the root level, with individual
-            # episode's subtitles in folders under that, named by the episode file name
-            expected_subs_folder = (
-                self.episode_file_src_folder
-                / Path("Subs")
-                / Path(self.episode_file_src_path.with_suffix("").name)
-            )
+        copy_func = locate_english_subs_by_size
 
-            copier = _SubtitleCopier(
-                self._log,
-                expected_subs_folder,
-                media_destination_path,
-                locate_english_subs_by_size,
-            )
-
-        if copier is not None:
-            copier.copy()
+        _SubtitleCopier(
+            self._log,
+            expected_subs_folder,
+            media_destination_path,
+            copy_func,
+        ).copy()
 
 
 if __name__ == "__main__":
