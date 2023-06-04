@@ -1,22 +1,15 @@
-# -*- coding: utf-8 -*-
 """
 Defines the various ways to locate a set of subtitles
 """
+import dataclasses
 from pathlib import Path
-from typing import List
-from typing import Optional
 
 
-class LocatedSubtitles(object):
-    def __init__(
-        self,
-        full_subtitle,
-        sdh_subtitle,
-        forced_subtitle,
-    ) -> None:
-        self.full_subtitle: Optional[Path] = full_subtitle
-        self.sdh_subtitle: Optional[Path] = sdh_subtitle
-        self.forced_subtitle: Optional[Path] = forced_subtitle
+@dataclasses.dataclass(frozen=True)
+class LocatedSubtitles:
+    full_subtitle: Path | None
+    sdh_subtitle: Path | None
+    forced_subtitle: Path | None
 
 
 def locate_english_subs_by_name(
@@ -81,7 +74,7 @@ def locate_english_subs_by_size(
     sdh_subtitle = None
     forced_subtitle = None
 
-    srt_files: List[Path] = sorted(list(expected_subs_folder.glob("*.srt")))
+    srt_files: list[Path] = sorted(list(expected_subs_folder.glob("*.srt")))
     if len(srt_files):
         log.info("Filtering to English subs")
         english_files = []
@@ -140,7 +133,7 @@ def locate_english_subs_vtx(
     sdh_subtitle = None
     forced_subtitle = None
 
-    srt_files: List[Path] = sorted(list(expected_subs_folder.glob("*.srt")))
+    srt_files: list[Path] = sorted(list(expected_subs_folder.glob("*.srt")))
     if len(srt_files):
         log.info("Filtering to English subs")
         english_files = []
