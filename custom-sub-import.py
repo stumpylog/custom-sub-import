@@ -164,7 +164,7 @@ class SonarrDownloadEventHandler(_EventHandler):
 
 
 if __name__ == "__main__":
-    version: Final[str] = "0.1.0"
+    version: Final[str] = "0.2.0"
 
     main_log = logging.getLogger("custom-sub-import")
 
