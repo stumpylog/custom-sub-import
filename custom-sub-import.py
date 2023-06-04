@@ -5,6 +5,7 @@
 import abc
 import logging
 import os
+import re
 import shutil
 import sys
 from collections.abc import Callable
@@ -70,11 +71,13 @@ class RadarrDownloadEventHandler(_EventHandler):
     def __init__(self, log: logging.Logger):
         super().__init__(log)
         self.download_file_src_folder: Path = Path(
-            os.environ.get("RADARR_MOVIEFILE_SOURCEFOLDER"),
+            os.environ.get("radarr_moviefile_sourcefolder"),
         )
 
+    def handle(self, event_type: str):
+        super().handle(event_type)
         # This is the destination folder Radarr will copy the movie file to
-        media_destination_path = Path(os.environ.get("RADARR_MOVIEFILE_PATH"))
+        media_destination_path = Path(os.environ.get("radarr_moviefile_path"))
 
         # The expected subtitle path is a simple Subs folder at the root level
         expected_subs_folder = self.download_file_src_folder / Path("Subs")
@@ -96,21 +99,59 @@ class RadarrDownloadEventHandler(_EventHandler):
 class SonarrDownloadEventHandler(_EventHandler):
     def __init__(self, log: logging.Logger):
         super().__init__(log)
-        self.episode_file_path = Path(os.environ["SONARR_EPISODEFILE_PATH"])
-        self.episode_file_src_path = Path(os.environ["SONARR_EPISODEFILE_SOURCEPATH"])
+        self.episode_file_path = Path(os.environ["sonarr_episodefile_path"])
+        self.episode_file_src_path = Path(os.environ["sonarr_episodefile_sourcepath"])
         self.episode_file_src_folder = Path(
-            os.environ["SONARR_EPISODEFILE_SOURCEFOLDER"],
+            os.environ["sonarr_episodefile_sourcefolder"],
         )
 
+    def handle(self, event_type: str):
+        super().handle(event_type)
         media_destination_path = self.episode_file_path
 
-        # The expected subtitle folder is Subs at the root level, with individual
+        # The expected subtitle folder is Subs at the root level
+        base_subs_folder = self.episode_file_src_folder / Path("Subs")
+
+        if not base_subs_folder.exists():
+            self._log.error(
+                f"Subs folder {base_subs_folder} does not exist, can't do anything",
+            )
+            return
+
+        # Check against the episode name, minus extension
         # episode's subtitles in folders under that, named by the episode file name
-        expected_subs_folder = (
-            self.episode_file_src_folder
-            / Path("Subs")
-            / Path(self.episode_file_src_path.with_suffix("").name)
+        expected_subs_folder = base_subs_folder / Path(
+            self.episode_file_src_path.with_suffix("").name,
         )
+
+        # Not found, try to locate by SxxEyy naming
+        if not expected_subs_folder.exists():
+            season_episode_re = re.compile("[Ss]\\d+[Ee]\\d+")
+            expected_subs_folder = None
+
+            # Find directories under Subs which appear to match SxxEyy naming
+            possible_sub_dirs = {}
+            for thing in base_subs_folder.glob("*"):
+                if not thing.is_dir():
+                    continue
+                match = season_episode_re.search(thing.name)
+                if match is not None:
+                    possible_sub_dirs[match.group(0)] = thing
+
+            match = season_episode_re.search(self.episode_file_src_path.name)
+            if match is not None:
+                season_episode = match.group(0)
+                if season_episode in possible_sub_dirs:
+                    expected_subs_folder = possible_sub_dirs[season_episode]
+
+        if expected_subs_folder is None:
+            self._log.error("Unable to locate subtitles folder")
+            return
+        else:
+            self._log.info(
+                f"Using {expected_subs_folder.relative_to(self.episode_file_src_path.parent)} "
+                f"for episode {self.episode_file_src_path.name}",
+            )
 
         copy_func = locate_english_subs_by_size
 
@@ -158,17 +199,19 @@ if __name__ == "__main__":
 
     handler_mapping = None
 
+    env_event_type = None
+
     if "radarr_eventtype" in os.environ:
-        env_event_type = os.environ["RADARR_EVENTTYPE"]
+        env_event_type = os.environ["radarr_eventtype"]
 
         handler_mapping = radarr_events_to_handlers
 
     elif "sonarr_eventtype" in os.environ:
-        env_event_type = os.environ["SONARR_EVENTTYPE"]
+        env_event_type = os.environ["sonarr_eventtype"]
 
         handler_mapping = sonarr_events_to_handlers
 
-    if env_event_type in handler_mapping:
+    if env_event_type is not None and env_event_type in handler_mapping:
         handler_mapping[env_event_type](main_log).handle(env_event_type)
     else:
         main_log.warning(f"Unhandled event: {env_event_type}")
